@@ -61,7 +61,7 @@ deploy_dev:
     - kubectl apply -f service.yaml
     - kubectl apply -f ingress.yaml
     - kubectl rollout status -f deployment.yaml
-    - kubectl get all,ing
+    - kubectl get all,ing -n hello-go
   only:
     - master
 
