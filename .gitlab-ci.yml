@@ -52,7 +52,6 @@ deploy_dev:
   stage: deploy
   environment:
     name: dev
-  when: manual
   script:
     - kubectl version
     - cd deployment/
