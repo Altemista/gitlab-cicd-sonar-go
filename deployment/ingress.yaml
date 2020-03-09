@@ -16,7 +16,7 @@ spec:
             backend:
               serviceName: hello-go
               servicePort: 8080
-    tls:
-      - secretName: hello-go-tls
-        hosts:
-          - hello-go.{{base_domain}}
+  tls:
+  - hosts:
+    - hello-go.{{base_domain}}
+    secretName: hello-go-tls
