@@ -1,0 +1,68 @@
+stages:
+  - test
+  - build
+  - push
+  - deploy
+
+test:
+  stage: test
+  image: golang:latest
+  script: 
+    - go test ./...
+
+sonarqube-check:
+  stage: test
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  script:
+    - sonar-scanner -Dsonar.qualitygate.wait=true -Dsonar.projectKey=$CI_PROJECT_NAME -Dsonar.sources=.
+  allow_failure: false
+
+build:
+  stage: build
+  image: golang:latest
+  before_script:
+  script: 
+    - go build -o hello-go
+
+build_docker:
+  image: docker:17.07.0-ce
+  stage: build
+  script:
+  - UUID=$(cat /proc/sys/kernel/random/uuid)
+  - docker build -t $CI_REGISTRY/$CI_PROJECT_PATH:$UUID .
+  - docker rmi $CI_REGISTRY/$CI_PROJECT_PATH:$UUID
+  except:
+  - master
+
+push_docker:
+  image: docker:17.07.0-ce
+  stage: push
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build -t $CI_REGISTRY/$CI_PROJECT_PATH:latest .
+    - docker push $CI_REGISTRY/$CI_PROJECT_PATH:latest
+  only:
+    - master
+
+deploy_dev:
+  image:
+    name: dtzar/helm-kubectl
+  stage: deploy
+  environment:
+    name: dev
+  when: manual
+  script:
+    - kubectl version
+    - cd deployment/
+    - sed -i "s~__CI_REGISTRY_IMAGE__~${CI_REGISTRY_IMAGE}~" deployment.yaml
+    - sed -i "s/__VERSION__/latest/" deployment.yaml
+    - kubectl apply -f deployment.yaml
+    - kubectl apply -f service.yaml
+    - kubectl apply -f ingress.yaml
+    - kubectl rollout status -f deployment.yaml
+    - kubectl get all,ing
+  only:
+    - master
+
